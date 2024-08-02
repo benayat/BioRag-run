@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  ui:
+    image: "benaya7/biorag-ui:1.0.0"
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_BASE_URL=http://backend_server:8080
+  backend_server:
+    image: "ghcr.io/benayat/biorag:0.0.4-SNAPSHOT"
+    ports:
+      - "8080:8080"
+    volumes:
+      - files_cache:/shared_files
+    environment:
+      - FILE_UPLOAD_DIR=/shared_files
+      - EMBEDDING_SERVER_URL=http://embedding_server:8000
+  embedding_server:
+    image: "ghcr.io/benayat/embedding_server:iris-1"
+    ports:
+      - "8000:8000"
+    volumes:
+      - files_cache:/shared_files
+    container_name: embedding_server_container
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s localhost:8000 | grep -c 'Not Found' | grep -q '^1$'"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+volumes:
+  files_cache:
