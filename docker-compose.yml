@@ -7,7 +7,7 @@ services:
     environment:
       - REACT_APP_API_BASE_URL=http://backend_server:8080
   backend_server:
-    image: "ghcr.io/benayat/biorag:0.0.4-SNAPSHOT"
+    image: "ghcr.io/benayat/biorag:0.0.5-SNAPSHOT"
     ports:
       - "8080:8080"
     volumes:
@@ -15,6 +15,7 @@ services:
     environment:
       - FILE_UPLOAD_DIR=/shared_files
       - EMBEDDING_SERVER_URL=http://embedding_server:8000
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/postgres
   embedding_server:
     image: "ghcr.io/benayat/embedding_server:iris-1"
     ports:
@@ -23,9 +24,28 @@ services:
       - files_cache:/shared_files
     container_name: embedding_server_container
     healthcheck:
-      test: ["CMD-SHELL", "curl -s localhost:8000 | grep -c 'Not Found' | grep -q '^1$'"]
+      test: [ "CMD-SHELL", "curl -s localhost:8000 | grep -c 'Not Found' | grep -q '^1$'" ]
       interval: 10s
       timeout: 10s
       retries: 5
+  postgres:
+    image: pgvector/pgvector:0.7.4-pg16
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - PGUSER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    restart: on-failure
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-d", "postgres" ]
+      interval: 5s
+      timeout: 60s
+      retries: 5
 volumes:
   files_cache:
+  postgres_data:
